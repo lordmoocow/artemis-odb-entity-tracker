@@ -30,6 +30,7 @@ import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
+import com.artemis.utils.IntBag;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Field;
 import com.artemis.utils.reflect.Method;
@@ -137,7 +138,7 @@ public class EntityTracker extends Manager implements WorldController {
 	private void listenForEntitySetChanges(final SystemInfo info) {
 		info.subscription.addSubscriptionListener(new SubscriptionListener() {
 			@Override
-			public void removed(ImmutableBag<Entity> entities) {
+			public void removed(IntBag entities) {
 				info.entitiesCount -= entities.size();
 
 				if (updateListener != null && (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_SYSTEM_STATS) != 0) {
@@ -146,7 +147,7 @@ public class EntityTracker extends Manager implements WorldController {
 			}
 
 			@Override
-			public void inserted(ImmutableBag<Entity> entities) {
+			public void inserted(IntBag entities) {
 				info.entitiesCount += entities.size();
 
 				if (info.entitiesCount > info.maxEntitiesCount) {
@@ -172,14 +173,14 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	@Override
-	public void added(Entity e) {
+	public void added(int e) {
 		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_ADDED) == 0) {
 			return;
 		}
 
 		BitSet componentBitset = null;
 		try {
-			componentBitset = (BitSet) entity_getComponentBits.invoke(e);
+			componentBitset = (BitSet) entity_getComponentBits.invoke(world.getEntity(e));
 		}
 		catch (ReflectionException exc) {
 			throw new RuntimeException(exc);
@@ -189,16 +190,16 @@ public class EntityTracker extends Manager implements WorldController {
 			inspectNewComponentTypesAndNotify();
 		}
 
-		updateListener.addedEntity(e.id, (BitSet) componentBitset.clone());
+		updateListener.addedEntity(e, (BitSet) componentBitset.clone());
 	}
 
 	@Override
-	public void deleted(Entity e) {
+	public void deleted(int e) {
 		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_DELETED) == 0) {
 			return;
 		}
 
-		updateListener.deletedEntity(e.id);
+		updateListener.deletedEntity(e);
 	}
 
 	private void inspectNewComponentTypesAndNotify() {
